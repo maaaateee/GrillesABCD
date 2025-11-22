@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="fr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Grilles SSIAP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#475569',
+                        darkbg: '#0f172a',
+                        darkcard: '#1e293b',
+                        darktext: '#e2e8f0'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .cell-select { 
+            width: 100%; 
+            text-align: center; 
+            text-align-last: center;
+            background: transparent; 
+            border: none; 
+            font-weight: 700; 
+            text-transform: uppercase; 
+            cursor: pointer; 
+            appearance: none;
+            -webkit-appearance: none;
+            padding: 0.5rem 0.25rem;
+            transition: all 0.2s;
+        }
+        .cell-select:hover { filter: brightness(95%); }
+        .cell-select:focus { outline: 2px solid #3b82f6; z-index: 10; position: relative; }
+
+        /* --- PALETTE DE COULEURS (Jour vs Nuit) --- */
+        .code-NX01 { background-color: #1e3a8a; color: white; } 
+        .code-J60F { background-color: #fef9c3; color: #854d0e; } 
+        .code-JFP { background-color: #fff1f2; color: #9f1239; } 
+        .code-JR { background-color: #ecfccb; color: #3f6212; } 
+        .code-JMC { background-color: #ffedd5; color: #9a3412; } 
+        .code-JR24 { background-color: #e0f2fe; color: #075985; } 
+        .code-MR1 { background-color: #f3e8ff; color: #6b21a8; } 
+        .code-Vide { background-color: white; color: #e5e7eb; }
+
+        /* Dark Mode Overrides for Cell Colors */
+        .dark .code-Vide { background-color: #334155; color: #94a3b8; }
+        
+        /* Cards */
+        .stat-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        .series-tag { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; margin-right: 6px; margin-bottom: 6px; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+        .tag-work { background-color: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+        .tag-rest { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        
+        .dark .tag-work { background-color: #312e81; color: #e0e7ff; border-color: #4338ca; }
+        .dark .tag-rest { background-color: #14532d; color: #dcfce7; border-color: #166534; }
+
+        .compliance-ok { color: #16a34a; font-weight: bold; }
+        .compliance-err { color: #dc2626; font-weight: bold; }
+        .compliance-neutral { color: #9ca3af; }
+        .dark .compliance-neutral { color: #64748b; }
+        
+        .rule-error { border: 2px solid #ef4444; position: relative; }
+        .rule-error::after {
+            content: '!';
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        /* Tabs Styling */
+        .nav-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .dark .nav-btn {
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+            border-color: #334155;
+            color: #94a3b8;
+        }
+        
+        .nav-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(to bottom, #fff, #f1f5f9);
+        }
+        .dark .nav-btn:hover {
+            background: linear-gradient(to bottom, #334155, #1e293b);
+        }
+
+        .nav-btn.active {
+            background: linear-gradient(to bottom, #3b82f6, #2563eb);
+            color: white;
+            border-color: #2563eb;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+            transform: translateY(1px);
+        }
+        .dark .nav-btn.active {
+            background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+            border-color: #1d4ed8;
+        }
+
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-darkbg dark:text-darktext min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="bg-white dark:bg-darkcard shadow-md border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 backdrop-blur-lg bg-opacity-90 dark:bg-opacity-90">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-20 items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-600 text-white p-2 rounded-lg shadow-lg">
+                        <i class="fa-solid fa-layer-group text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Simulateur Grilles</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">Gestion Planning & Analyse</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <!-- Tabs -->
+                    <div class="flex gap-2">
+                        <button onclick="switchTab('grille21')" id="btn-grille21" class="nav-btn px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-bullseye"></i> GRILLE 21
+                        </button>
+                        <button onclick="switchTab('2022')" id="btn-2022" class="nav-btn px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-days"></i> GRILLE 14
+                        </button>
+                        <button onclick="switchTab('projet')" id="btn-projet" class="nav-btn px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-arrow-trend-down text-red-400"></i> GRILLE 17
+                        </button>
+                        <button onclick="switchTab('compare')" id="btn-compare" class="nav-btn px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2">
+                            <i class="fa-solid fa-scale-balanced"></i> Comparateur
+                        </button>
+                    </div>
+
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" class="p-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors focus:outline-none ring-2 ring-transparent focus:ring-blue-500" aria-label="Mode Sombre">
+                        <i class="fa-solid fa-moon text-xl" id="theme-icon"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+        <!-- ALERT BOX FOR RULES -->
+        <div id="rules-alert-box" class="hidden mb-8 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-5 rounded-r-lg shadow-sm animate-pulse">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fa-solid fa-circle-exclamation text-red-500 text-xl mt-0.5"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-base font-bold text-red-800 dark:text-red-300">Règles Métier Non Respectées</h3>
+                    <div class="mt-2 text-sm text-red-700 dark:text-red-200">
+                        <ul class="list-disc pl-5 space-y-1" id="rules-alert-list">
+                            <!-- Errors injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- OPTIMIZATION BOX (Only on Projet) -->
+        <div id="optimization-box" class="hidden mb-8 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 p-5 rounded-xl shadow-sm">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="bg-indigo-100 dark:bg-indigo-800 p-3 rounded-full">
+                        <i class="fa-solid fa-wand-magic-sparkles text-indigo-600 dark:text-indigo-300 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-indigo-900 dark:text-indigo-100">Optimisation Ligne 12 (Triangulaire)</h3>
+                        <div class="mt-1 text-sm text-indigo-700 dark:text-indigo-300">
+                            Appliquer l'échange : L12 (Jeu:NX01, Ven:NX01) ↔ L13 (Jeu:JR) ↔ L8 (Ven:J60F)
+                        </div>
+                    </div>
+                </div>
+                <button onclick="applyTriangularSwap()" class="bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-md transition-all transform hover:scale-105 active:scale-95">
+                    Appliquer
+                </button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD STATS MAIN -->
+        <div id="dashboard-stats" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Stats injected here via JS or hidden in compare mode -->
+             <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm p-6 border border-slate-100 dark:border-slate-700 stat-card relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                     <i class="fa-regular fa-clock text-6xl text-blue-500"></i>
+                </div>
+                <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Durée Hebdo Moyenne</dt>
+                <dd class="mt-2 text-3xl font-extrabold text-slate-900 dark:text-white" id="disp-hebdo">--:--</dd>
+                <div class="mt-2 flex items-center text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <span class="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-md mr-2">Cible 37h30</span>
+                    <span>525h/cycle</span>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm p-6 border border-slate-100 dark:border-slate-700 stat-card relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                     <i class="fa-solid fa-moon text-6xl text-indigo-500"></i>
+                </div>
+                <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Charge Nuit / Agent / An</dt>
+                <div class="flex items-baseline mt-2">
+                    <dd class="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400" id="disp-nuits-an-nb">--</dd>
+                    <span class="ml-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400">nuits</span>
+                    <span class="mx-3 text-slate-300 dark:text-slate-600">|</span>
+                    <dd class="text-2xl font-bold text-indigo-600 dark:text-indigo-400" id="disp-nuits-an-h">--h</dd>
+                </div>
+                <p class="mt-2 text-xs text-slate-400 dark:text-slate-500">Projection 52 sem (Base 8h)</p>
+            </div>
+
+            <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm p-6 border border-slate-100 dark:border-slate-700 stat-card relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                     <i class="fa-solid fa-car text-6xl text-emerald-500"></i>
+                </div>
+                <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Fréquence Vacations</dt>
+                <div class="flex items-baseline mt-2">
+                    <dd class="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400" id="disp-vacs">--</dd>
+                    <span class="ml-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400">/ sem</span>
+                </div>
+                <p class="mt-2 text-xs font-bold text-emerald-600 dark:text-emerald-400" id="disp-vacs-an">-- vacations / an</p>
+            </div>
+
+            <div class="bg-white dark:bg-darkcard rounded-2xl shadow-sm p-6 border border-slate-100 dark:border-slate-700 stat-card relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                     <i class="fa-solid fa-coins text-6xl text-purple-500"></i>
+                </div>
+                <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Total Majoré (Moy/Mois)</dt>
+                <dd class="mt-2 text-3xl font-extrabold text-purple-600 dark:text-purple-400" id="disp-majo">--:--</dd>
+                <p class="mt-2 text-xs text-slate-400 dark:text-slate-500">Nuit (22h-06h) + Dimanche</p>
+            </div>
+        </div>
+
+        <!-- DASHBOARD STATS SOCIAL -->
+        <div id="dashboard-social" class="mb-8">
+            <h2 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+                <i class="fa-solid fa-users-viewfinder mr-2.5 text-blue-500"></i>Indicateurs Sociaux (Projection Annuelle)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Dimanches Travaillés -->
+                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border-t-4 border-orange-400 p-5 stat-card">
+                    <div class="text-center">
+                        <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Dimanches Travaillés</dt>
+                        <div class="flex items-baseline justify-center mt-2">
+                            <dd class="text-3xl font-bold text-orange-500" id="disp-dim-trav-nb">--</dd>
+                            <span class="ml-1.5 text-sm text-slate-500 dark:text-slate-400 mr-3">j</span>
+                            <span class="text-slate-200 dark:text-slate-700 text-2xl">/</span>
+                            <dd class="ml-3 text-xl font-bold text-orange-500" id="disp-dim-trav-h">--h</dd>
+                        </div>
+                    </div>
+                </div>
+                <!-- Dimanches Repos -->
+                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border-t-4 border-teal-400 p-5 stat-card">
+                    <div class="text-center">
+                        <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Dimanches de Repos</dt>
+                        <div class="flex items-baseline justify-center mt-2">
+                            <dd class="text-3xl font-bold text-teal-500" id="disp-dim-repos-nb">--</dd>
+                            <span class="ml-1.5 text-sm text-slate-500 dark:text-slate-400 mr-3">j</span>
+                            <span class="text-slate-200 dark:text-slate-700 text-2xl">/</span>
+                            <dd class="ml-3 text-xl font-bold text-teal-500" id="disp-dim-repos-h">--h</dd>
+                        </div>
+                    </div>
+                </div>
+                <!-- Week-ends Complets -->
+                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm border-t-4 border-emerald-500 p-5 stat-card">
+                    <div class="text-center">
+                        <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Week-ends Complets (S+D)</dt>
+                        <dd class="mt-2 text-4xl font-bold text-emerald-500" id="disp-we-repos">--</dd>
+                        <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">Samedi & Dimanche OFF</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SERIES & RYTHME -->
+        <div id="dashboard-rhythm" class="mb-8">
+            <h2 class="text-lg font-bold text-slate-700 dark:text-slate-200 mb-4 flex items-center">
+                <i class="fa-solid fa-chart-gantt mr-2.5 text-blue-500"></i>Analyse des Rythmes Annualisés (Séries)
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Séries de Vacations -->
+                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm p-5 border-l-4 border-blue-400 stat-card">
+                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 mb-3">
+                        <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Séries de Vacations (An)</dt>
+                        <dd class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="disp-series-vac-total">--</dd>
+                    </div>
+                    <div id="disp-series-vac-detail" class="flex flex-wrap gap-2">
+                        <!-- Inject tags here -->
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-3">Séquences de travail consécutives par an</p>
+                </div>
+                <!-- Séries de Repos -->
+                <div class="bg-white dark:bg-darkcard rounded-xl shadow-sm p-5 border-l-4 border-green-400 stat-card">
+                    <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-700 pb-3 mb-3">
+                        <dt class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Séries de Repos (An)</dt>
+                        <dd class="text-2xl font-bold text-green-600 dark:text-green-400" id="disp-series-repos-total">--</dd>
+                    </div>
+                    <div id="disp-series-repos-detail" class="flex flex-wrap gap-2">
+                        <!-- Inject tags here -->
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-3">Séquences de repos consécutives par an</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: GRILLE -->
+        <div id="view-grid" class="bg-white dark:bg-darkcard shadow-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white" id="grid-title">Grille Actuelle (2022)</h3>
+                <div class="text-xs font-medium text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-full shadow-sm flex gap-3 border border-slate-200 dark:border-slate-600">
+                    <span><i class="fa-solid fa-rotate mr-1.5 text-blue-500"></i> Nuit 22h-06h & Non-Cumul</span>
+                    <span class="border-l border-slate-300 dark:border-slate-500 pl-3"><i class="fa-solid fa-triangle-exclamation text-red-500 mr-1.5"></i>Max 42h/sem</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead class="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th scope="col" class="px-3 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ligne</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Lun</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mar</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Mer</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Jeu</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ven</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sam</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Dim</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/50">Nb Vac</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-slate-100 dark:bg-slate-700/50">Durée</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-blue-50 dark:bg-blue-900/20">H. Nuit</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-orange-50 dark:bg-orange-900/20">H. Dim</th>
+                            <th scope="col" class="px-3 py-4 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider bg-purple-50 dark:bg-purple-900/20">Total Majo</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-darkcard divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300" id="grid-body">
+                        <!-- Rows injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-800 px-6 py-4 border-t border-slate-200 dark:border-slate-700">
+                <div class="text-xs font-medium text-slate-500 dark:text-slate-400 flex flex-wrap gap-4 items-center justify-center">
+                    <span class="font-bold uppercase mr-2">Légende :</span> 
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#1e3a8a] rounded-sm mr-1.5 shadow-sm"></span> NX01 (Nuit)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#fef9c3] rounded-sm mr-1.5 shadow-sm border border-yellow-200"></span> J60F (Jour)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#fff1f2] rounded-sm mr-1.5 shadow-sm border border-pink-200"></span> JFP (Jour Formation)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#ecfccb] rounded-sm mr-1.5 shadow-sm border border-lime-200"></span> JR (Jour Renfort)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#e0f2fe] rounded-sm mr-1.5 shadow-sm border border-sky-200"></span> JR24 (Petite)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#ffedd5] rounded-sm mr-1.5 shadow-sm border border-orange-200"></span> JMC (Maintien)</div>
+                    <div class="flex items-center"><span class="inline-block w-3 h-3 bg-[#f3e8ff] rounded-sm mr-1.5 shadow-sm border border-purple-200"></span> MR1 (Petite)</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: CONTROL RULES (Container) -->
+        <div id="view-rules-container" class="hidden mt-8 bg-white dark:bg-darkcard shadow-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center"><i class="fa-solid fa-check-double mr-2.5 text-emerald-500"></i>Contrôle des Règles (DESY PDS-FDS)</h3>
+                <div class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-600 px-3 py-1 rounded-full" id="rules-label">
+                    Grille 14 Uniquement
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                    <thead class="bg-slate-50 dark:bg-slate-800">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Compétence</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Lun</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Mar</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Mer</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Jeu</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Ven</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Sam</th>
+                            <th class="px-4 py-3 text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Dim</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white dark:bg-darkcard divide-y divide-slate-200 dark:divide-slate-700 text-slate-700 dark:text-slate-300" id="rules-body">
+                        <!-- Rules injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="bg-slate-50 dark:bg-slate-800 px-6 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400">
+                Affichage : <span class="font-bold">Réel / Cible</span>. Vert = Conforme, Rouge = Non Conforme (Seulement pour J60F, NX01, JFP).
+            </div>
+        </div>
+
+        <!-- VIEW: COMPARATEUR -->
+        <div id="view-compare" class="hidden">
+            <div class="bg-white dark:bg-darkcard shadow-lg rounded-xl overflow-hidden mb-8 border border-slate-200 dark:border-slate-700">
+                <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                    <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center"><i class="fa-solid fa-code-compare mr-2.5 text-blue-500"></i>Comparatif Global</h3>
+                </div>
+                <div class="p-6">
+                    <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                        <table class="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                            <thead class="bg-slate-50 dark:bg-slate-800">
+                                <tr>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Indicateur</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">GRILLE 14 (2022)</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">GRILLE 17 (Projet)</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">GRILLE 21</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-darkcard divide-y divide-slate-200 dark:divide-slate-700 text-sm" id="compare-body">
+                                <!-- Compare rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 dark:border-blue-500 p-5 rounded-r-lg">
+                         <p class="text-sm text-blue-800 dark:text-blue-200">Données lissées sur 52 semaines. Heures de nuit calculées strictement entre 22h00 et 06h00. Majoration Dimanche prévaut sur Nuit si chevauchement.</p>
+                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                             <div>
+                                 <p class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase mb-1">Score Pénibilité Physiologique (Physio)</p>
+                                 <ul class="list-disc list-inside text-xs text-blue-600 dark:text-blue-400">
+                                     <li>1 point par vacation de Nuit (NX01), quel que soit le jour.</li>
+                                     <li>+1 point par vacation annuelle (fatigue générale).</li>
+                                 </ul>
+                             </div>
+                             <div>
+                                 <p class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase mb-1">Score Pénibilité Sociale (Social)</p>
+                                 <ul class="list-disc list-inside text-xs text-blue-600 dark:text-blue-400">
+                                     <li>Vendredi Nuit : 1 pt</li>
+                                     <li>Samedi (Jour ou Nuit) : 1 pt</li>
+                                     <li>Dimanche (Jour ou Nuit) : 1 pt</li>
+                                     <li>+1 point par vacation annuelle (fatigue générale).</li>
+                                 </ul>
+                             </div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- DARK MODE LOGIC ---
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            }
+        }
+
+        // --- CONFIGURATION & DATA ---
+        const HORAIRES = {
+            "J60F": { debut: 6, fin: 18, duree: 12.0, nuit: 0, split: false },
+            "JMC":  { debut: 6, fin: 18, duree: 12.0, nuit: 0, split: false },
+            "JR":   { debut: 6, fin: 18, duree: 12.0, nuit: 0, split: false },
+            "JR24": { debut: 6, fin: 16.5, duree: 10.5, nuit: 0, split: false },
+            // nightSplit: [2, 6] signifie 2h de nuit le jour J (22h-00h) et 6h le jour J+1 (00h-06h)
+            "NX01": { debut: 18, fin: 30, duree: 12.0, nuit: 8, split: true, splitHours: [6, 6], nightSplit: [2, 6] }, 
+            "MR1":  { debut: 6, fin: 14.5, duree: 8.5, nuit: 0, split: false },
+            "JFP":  { debut: 6, fin: 18, duree: 12.0, nuit: 0, split: false },
+            "":     { debut: 0, fin: 0, duree: 0, nuit: 0, split: false }
+        };
+
+        // REGLES DE CONTROLE 2022
+        const CONSTRAINTS_2022 = {
+            "J60F": [2, 2, 2, 2, 2, 2, 2],
+            "JMC":  [1, 0, 0, 0, 0, 1, 0],
+            "JR":   [1, 2, 2, 2, 2, 1, 2],
+            "JR24": [2, 0, 0, 0, 0, 0, 0],
+            "NX01": [2, 2, 2, 2, 2, 2, 2]
+        };
+
+        // REGLES DE CONTROLE PROJET
+        const CONSTRAINTS_PROJET = {
+            "J60F": [3, 3, 3, 3, 3, 3, 3],
+            "JFP":  [0, 2, 0, 0, 0, 0, 0],
+            "JR":   [2, 1, 2, 3, 1, 1, 4],
+            "MR1":  [1, 0, 1, 0, 0, 1, 0],
+            "NX01": [2, 2, 2, 2, 2, 2, 2]
+        };
+        
+        // REGLES DE CONTROLE GRILLE 21
+        const CONSTRAINTS_GRILLE21 = {
+            "J60F": [3, 3, 3, 3, 3, 3, 3], 
+            "NX01": [3, 3, 3, 3, 3, 3, 3], 
+            "JFP":  [0, 2, 0, 0, 0, 0, 0], 
+            "JR":   [0, 0, 0, 0, 0, 0, 0], 
+            "JR24": [0, 0, 0, 0, 0, 0, 0]
+        };
+
+        const DATA_2022 = [
+            ["NX01", "", "", "", "NX01", "NX01", ""],
+            ["", "", "JR", "JR", "JR", "", ""],
+            ["", "NX01", "NX01", "", "", "", "JR"],
+            ["JMC", "", "", "", "", "J60F", "J60F"],
+            ["JR24", "", "", "J60F", "J60F", "", ""],
+            ["", "J60F", "J60F", "NX01", "", "", ""],
+            ["J60F", "JR", "", "", "", "JR", "NX01"], 
+            ["NX01", "", "", "", "NX01", "NX01", ""],
+            ["", "", "J60F", "J60F", "J60F", "", ""],
+            ["", "NX01", "NX01", "", "", "", "JR"],
+            ["JR", "", "", "", "", "J60F", "J60F"],
+            ["JR24", "", "", "JR", "JR", "", ""],
+            ["", "J60F", "JR", "NX01", "", "", ""],
+            ["J60F", "JR", "", "", "", "JMC", "NX01"]
+        ];
+
+        const DATA_PROJET = [
+            ["NX01", "", "", "", "", "JR", "JR"],
+            ["", "", "MR1", "JR", "JR", "", ""],
+            ["", "JR", "JR", "", "", "", "JR"],
+            ["JR", "", "", "", "", "J60F", "J60F"],
+            ["JR", "", "", "J60F", "J60F", "", ""],
+            ["", "J60F", "J60F", "JR", "", "", ""],
+            ["J60F", "J60F", "", "", "", "NX01", "NX01"],
+            ["", "", "", "J60F", "NX01", "NX01", ""],
+            ["", "", "J60F", "J60F", "J60F", "", ""],
+            ["", "NX01", "NX01", "", "", "", "JR"],
+            ["J60F", "JFP", "", "", "", "J60F", "NX01"],
+            ["NX01", "", "", "JR", "J60F", "", ""],
+            ["", "J60F", "JR", "NX01", "", "", ""],
+            ["MR1", "JFP", "", "", "", "MR1", "J60F"],
+            ["J60F", "", "", "", "", "J60F", "J60F"],
+            ["", "", "J60F", "NX01", "NX01", "", ""],
+            ["", "NX01", "NX01", "", "", "", "JR"]
+        ];
+        
+        // Données Grille 21 (Actuel Étendu)
+        // 1. Copie intégrale de 2022 (14 lignes)
+        // BUT replace JMC with JR
+        let DATA_GRILLE21_TEMP = JSON.parse(JSON.stringify(DATA_2022));
+        
+        // 2. Ajout des 7 lignes supplémentaires (Copie du bloc 1-7 de 2022)
+        for(let i=0; i<7; i++) {
+            DATA_GRILLE21_TEMP.push([...DATA_2022[i]]);
+        }
+        
+        // 3. Replace ALL 'JMC' with 'JR' in this new grid
+        for(let r=0; r<DATA_GRILLE21_TEMP.length; r++) {
+            for(let c=0; c<DATA_GRILLE21_TEMP[r].length; c++) {
+                if(DATA_GRILLE21_TEMP[r][c] === 'JMC') {
+                    DATA_GRILLE21_TEMP[r][c] = 'JR';
+                }
+                if(DATA_GRILLE21_TEMP[r][c] === 'MR1') {
+                    DATA_GRILLE21_TEMP[r][c] = 'JR';
+                }
+            }
+        }
+        
+        // 4. Specific modifications: Mardi Ligne 7 and Mardi Ligne 14 become JFP
+        // Indices are 0-based. Ligne 7 is index 6. Ligne 14 is index 13.
+        // Mardi is index 1.
+        if(DATA_GRILLE21_TEMP.length > 6) DATA_GRILLE21_TEMP[6][1] = 'JFP';
+        if(DATA_GRILLE21_TEMP.length > 13) DATA_GRILLE21_TEMP[13][1] = 'JFP';
+        
+        const DATA_GRILLE21 = DATA_GRILLE21_TEMP;
+
+        let currentMode = 'grille21'; 
+        let activeData = JSON.parse(JSON.stringify(DATA_GRILLE21)); 
+
+        // --- LOGIQUE DE CALCUL ---
+
+        function calculateStats(grid) {
+            const nbLignes = grid.length;
+            let violations = []; 
+            
+            let lineDurations = new Array(nbLignes).fill(0);
+            let lineNights = new Array(nbLignes).fill(0);
+            let lineVacs = new Array(nbLignes).fill(0);
+            let lineSundays = new Array(nbLignes).fill(0);
+            let lineMajo = new Array(nbLignes).fill(0);
+            
+            let totalHeures = 0;
+            let totalNuit = 0;
+            let totalDimanche = 0;
+            let totalMajo = 0;
+            let totalVacations = 0;
+            let countDimTrav = 0;
+            let countWERepos = 0;
+            let countNuits = 0;
+            let scoreSocial = 0;
+
+            let flatSchedule = [];
+            grid.forEach((row, rIdx) => {
+                row.forEach((code, cIdx) => {
+                    flatSchedule.push(code);
+                });
+            });
+            
+            let simpleRuns = [];
+            if (flatSchedule.length > 0) {
+                let currentRun = { type: !!flatSchedule[0], count: 1 };
+                for(let i=1; i<flatSchedule.length; i++) {
+                    if(!!flatSchedule[i] === currentRun.type) {
+                        currentRun.count++;
+                    } else {
+                        simpleRuns.push(currentRun);
+                        currentRun = { type: !!flatSchedule[i], count: 1 };
+                    }
+                }
+                simpleRuns.push(currentRun);
+                
+                if(simpleRuns.length > 1 && simpleRuns[0].type === simpleRuns[simpleRuns.length-1].type) {
+                    simpleRuns[0].count += simpleRuns.pop().count;
+                }
+            }
+            
+            simpleRuns.forEach(s => {
+                if(s.type) { 
+                    if(s.count === 1) violations.push("Vacation isolée détectée (Interdit)");
+                    if(s.count > 3) violations.push("Série de +3 vacations d'affilée (Interdit)");
+                }
+            });
+            
+            for(let i=0; i<flatSchedule.length; i++) {
+                let code = flatSchedule[i];
+                if(!code) continue;
+                
+                let nextIdx = -1;
+                for(let j=1; j<flatSchedule.length; j++) {
+                    if(flatSchedule[(i+j) % flatSchedule.length]) {
+                        nextIdx = (i+j);
+                        break;
+                    }
+                }
+                
+                if(nextIdx !== -1) {
+                    let nextCode = flatSchedule[nextIdx % flatSchedule.length];
+                    let gapDays = nextIdx - i; 
+                    
+                    let currentH = HORAIRES[code];
+                    let nextH = HORAIRES[nextCode];
+                    
+                    let endTime = currentH.fin;
+                    let nextStartTime = nextH.debut + (gapDays * 24);
+                    let restTime = nextStartTime - endTime;
+                    
+                    if(gapDays === 1) { 
+                        if(restTime < 12) {
+                            violations.push(`Repos journalier < 12h : ${code} -> ${nextCode} (${restTime}h)`);
+                        }
+                    }
+                    
+                    if(gapDays > 1) { 
+                        if(restTime < 48) {
+                            violations.push(`Bloc Repos < 48h : ${code} -> ... -> ${nextCode} (${restTime}h)`);
+                        }
+                    }
+                }
+            }
+            
+            const windowSchedule = flatSchedule.concat(flatSchedule.slice(0, 2));
+            for(let i=0; i<flatSchedule.length; i++) {
+                let c1 = windowSchedule[i];
+                let c2 = windowSchedule[i+1];
+                let c3 = windowSchedule[i+2];
+                
+                if(c1 === 'NX01' && c2 === 'NX01' && c3 === 'NX01') {
+                    violations.push("Série de 3 Nuits d'affilée (Interdit)");
+                    break; 
+                }
+            }
+
+            violations = [...new Set(violations)];
+
+
+            for (let r = 0; r < nbLignes; r++) {
+                const codeSam = grid[r][5];
+                const codeDim = grid[r][6];
+                if(!codeSam && !codeDim) {
+                    countWERepos++;
+                }
+                if(codeDim) {
+                    countDimTrav++;
+                }
+
+                for (let c = 0; c < 7; c++) { 
+                    let code = grid[r][c];
+                    if (code && HORAIRES[code]) {
+                        let hDef = HORAIRES[code];
+                        
+                        lineVacs[r]++;
+                        totalVacations++;
+                        
+                        if (code === 'NX01') { countNuits++; }
+                        
+                        if (c === 4 && code === 'NX01') { scoreSocial++; }
+                        if (c === 5) { scoreSocial++; }
+                        if (c === 6) { scoreSocial++; }
+
+                        if (!hDef.split) {
+                            lineDurations[r] += hDef.duree;
+                            lineNights[r] += hDef.nuit;
+                            totalHeures += hDef.duree;
+                            totalNuit += hDef.nuit;
+
+                            let isSunday = (c === 6);
+                            let sunHours = isSunday ? hDef.duree : 0;
+                            
+                            if (isSunday) {
+                                totalDimanche += sunHours;
+                                lineSundays[r] += sunHours;
+                            }
+
+                            let majo = hDef.nuit + sunHours; 
+                            lineMajo[r] += majo;
+                            totalMajo += majo;
+
+                        } else {
+                            let d1 = hDef.splitHours[0];
+                            let n1 = hDef.nightSplit[0];
+                            
+                            lineDurations[r] += d1;
+                            lineNights[r] += n1;
+                            totalHeures += d1;
+                            totalNuit += n1;
+
+                            let isJSunday = (c === 6);
+                            let sun1 = isJSunday ? d1 : 0;
+                            if (isJSunday) {
+                                totalDimanche += sun1;
+                                lineSundays[r] += sun1;
+                            }
+
+                            let overlap1 = (n1 > 0 && sun1 > 0) ? Math.min(n1, sun1) : 0;
+                            let majo1 = n1 + sun1 - overlap1;
+                            
+                            lineMajo[r] += majo1;
+                            totalMajo += majo1;
+
+
+                            let d2 = hDef.splitHours[1];
+                            let n2 = hDef.nightSplit[1];
+                            
+                            totalHeures += d2;
+                            totalNuit += n2;
+
+                            let targetLine = (c < 6) ? r : (r + 1) % nbLignes;
+                            lineDurations[targetLine] += d2;
+                            lineNights[targetLine] += n2;
+
+                            let isNextSunday = (c === 5);
+                            let sun2 = isNextSunday ? d2 : 0;
+                            
+                            if (isNextSunday) {
+                                totalDimanche += d2;
+                                lineSundays[targetLine] += d2;
+                            }
+
+                            let overlap2 = (n2 > 0 && sun2 > 0) ? Math.min(n2, sun2) : 0;
+                            let majo2 = n2 + sun2 - overlap2;
+
+                            lineMajo[targetLine] += majo2;
+                            totalMajo += majo2;
+                        }
+                    }
+                }
+            }
+
+            const dimTravAn = (countDimTrav * 52) / nbLignes;
+            const dimReposAn = 52 - dimTravAn;
+            const weReposAn = (countWERepos * 52) / nbLignes;
+            const nuitsAn = (countNuits * 52) / nbLignes;
+            const heuresNuitAn = (totalNuit * 52) / nbLignes;
+            const dimancheAnHours = (totalDimanche * 52) / nbLignes; 
+            const dimReposAnHours = dimReposAn * 24; 
+            
+            const vacSemaine = totalVacations / nbLignes;
+            const vacAn = vacSemaine * 52; 
+            
+            // Updated Scores Logic (Adding +1 per vacation/year)
+            const scoreSocialAn = ((scoreSocial * 52) / nbLignes) + vacAn;
+            const scorePhysioAn = nuitsAn + vacAn;
+            
+            const cyclesPerYear = 52 / nbLignes;
+
+            let seriesVacCountsArray = [];
+            let seriesReposCountsArray = [];
+            simpleRuns.forEach(s => {
+                if(s.type) seriesVacCountsArray.push(s.count);
+                else seriesReposCountsArray.push(s.count);
+            });
+            
+            const countOccurrences = (arr) => {
+                const counts = {};
+                arr.forEach(x => { counts[x] = (counts[x] || 0) + 1; });
+                return counts;
+            };
+            const seriesVacCounts = countOccurrences(seriesVacCountsArray);
+            const seriesReposCounts = countOccurrences(seriesReposCountsArray);
+
+            return {
+                violations: violations,
+                totalHeures: totalHeures,
+                totalNuit: totalNuit,
+                totalDimanche: totalDimanche,
+                totalMajo: totalMajo,
+                totalVacations: totalVacations,
+                hebdo: totalHeures / nbLignes,
+                vacSemaine: vacSemaine,
+                vacAn: vacAn,
+                dimancheMois: (totalDimanche * (52/12)) / nbLignes,
+                majoMois: (totalMajo * (52/12)) / nbLignes,
+                dimTravAn: dimTravAn,
+                dimReposAn: dimReposAn,
+                weReposAn: weReposAn,
+                nuitsAn: nuitsAn,
+                heuresNuitAn: heuresNuitAn,
+                dimancheAnHours: dimancheAnHours,
+                dimReposAnHours: dimReposAnHours,
+                scorePhysioAn: scorePhysioAn,
+                scoreSocialAn: scoreSocialAn,
+                lineDurations: lineDurations,
+                lineNights: lineNights,
+                lineVacs: lineVacs,
+                lineSundays: lineSundays,
+                lineMajo: lineMajo,
+                nbLignes: nbLignes,
+                seriesVacCounts: seriesVacCounts,
+                seriesReposCounts: seriesReposCounts,
+                totalSeriesVac: seriesVacCountsArray.length,
+                totalSeriesRepos: seriesReposCountsArray.length,
+                cyclesPerYear: cyclesPerYear
+            };
+        }
+
+        function formatTime(decimalTime) {
+            const sign = decimalTime < 0 ? "-" : "";
+            const absTime = Math.abs(decimalTime);
+            let hrs = Math.floor(absTime);
+            let mins = Math.round((absTime - hrs) * 60);
+            
+            if (mins === 60) {
+                hrs++;
+                mins = 0;
+            }
+            
+            return `${sign}${hrs}h${mins < 10 ? '0' : ''}${mins}`;
+        }
+
+        function renderConstraintsTable(grid, currentConstraints) {
+            const tbody = document.getElementById('rules-body');
+            tbody.innerHTML = '';
+
+            const counts = {}; 
+            Object.keys(currentConstraints).forEach(code => {
+                counts[code] = [0, 0, 0, 0, 0, 0, 0];
+            });
+
+            grid.forEach(row => {
+                row.forEach((code, dayIdx) => {
+                    if (code && counts[code]) {
+                        counts[code][dayIdx]++;
+                    }
+                });
+            });
+
+            Object.keys(currentConstraints).forEach(code => {
+                const tr = document.createElement('tr');
+                
+                const tdLabel = document.createElement('td');
+                tdLabel.className = "px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800";
+                tdLabel.innerHTML = `<span class="inline-block w-3 h-3 code-${code} mr-2 rounded-sm"></span>${code}`;
+                tr.appendChild(tdLabel);
+
+                for (let i = 0; i < 7; i++) {
+                    const count = counts[code][i];
+                    const target = currentConstraints[code][i];
+                    const td = document.createElement('td');
+                    td.className = "px-4 py-3 whitespace-nowrap text-sm text-center border border-slate-100 dark:border-slate-700";
+                    
+                    let statusClass = "compliance-neutral";
+                    if (target > 0) {
+                        statusClass = (count === target) ? "compliance-ok" : "compliance-err";
+                    } else {
+                        statusClass = "compliance-neutral";
+                    }
+                    
+                    td.innerHTML = `<span class="${statusClass}">${count} / ${target}</span>`;
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            });
+        }
+
+        function applyTriangularSwap() {
+            if (currentMode !== 'projet') {
+                alert("Cette optimisation est pour la grille Projet (ABCD).");
+                return;
+            }
+            
+            activeData[11][3] = 'NX01';
+            activeData[11][4] = 'NX01';
+            activeData[12][3] = 'JR';
+            activeData[7][4] = 'J60F';
+            
+            renderGrid();
+            
+            alert("Optimisation Triangulaire Appliquée !\n\nLigne 12 : Reprise Jeudi 18h (+12h repos)\nLigne 13 : Jeudi Jour\nLigne 8 : Vendredi Jour");
+        }
+
+        function renderGrid() {
+            const tbody = document.getElementById('grid-body');
+            tbody.innerHTML = '';
+            const stats = calculateStats(activeData);
+
+            // Display Violations
+            const alertBox = document.getElementById('rules-alert-box');
+            const alertList = document.getElementById('rules-alert-list');
+            if (stats.violations.length > 0) {
+                alertBox.classList.remove('hidden');
+                alertList.innerHTML = '';
+                stats.violations.forEach(v => {
+                    alertList.innerHTML += `<li>${v}</li>`;
+                });
+            } else {
+                alertBox.classList.add('hidden');
+            }
+
+            activeData.forEach((row, rIndex) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-sm font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/50 border-r border-slate-200 dark:border-slate-700">${rIndex + 1}</td>`;
+
+                row.forEach((code, cIndex) => {
+                    const cssClass = code ? `code-${code}` : `code-Vide`;
+                    let cellOptions = `<option value="" class="bg-white dark:bg-slate-800 text-gray-400">--</option>`;
+                    Object.keys(HORAIRES).forEach(k => {
+                        if(k) {
+                            const isSelected = code === k ? 'selected' : '';
+                            cellOptions += `<option value="${k}" class="text-black bg-white font-normal" ${isSelected}>${k}</option>`;
+                        }
+                    });
+
+                    const cell = `<td class="px-1 py-1 whitespace-nowrap text-sm border border-slate-100 dark:border-slate-700">
+                        <select class="cell-select py-2 rounded-md ${cssClass} text-sm shadow-sm" 
+                               onchange="updateCell(${rIndex}, ${cIndex}, this.value)">
+                            ${cellOptions}
+                        </select>
+                    </td>`;
+                    tr.innerHTML += cell;
+                });
+
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-center text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/50 border-l border-slate-200 dark:border-slate-700">${stats.lineVacs[rIndex]}</td>`;
+                
+                const duration = stats.lineDurations[rIndex];
+                const isOverLimit = duration > 42;
+                const durationClass = isOverLimit ? "text-red-600 dark:text-red-400 font-extrabold" : "text-emerald-600 dark:text-emerald-400 font-bold";
+                const warningIcon = isOverLimit ? '<i class="fa-solid fa-triangle-exclamation ml-1 text-red-500" title="Dépassement 42h"></i>' : '';
+
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-center text-sm bg-slate-50 dark:bg-slate-800/50 ${durationClass}">${formatTime(duration)} ${warningIcon}</td>`;
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-center text-sm text-blue-600 dark:text-blue-400 font-semibold bg-blue-50 dark:bg-blue-900/20">${formatTime(stats.lineNights[rIndex])}</td>`;
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-center text-sm text-orange-600 dark:text-orange-400 font-semibold bg-orange-50 dark:bg-orange-900/20">${formatTime(stats.lineSundays[rIndex])}</td>`;
+                tr.innerHTML += `<td class="px-3 py-3 whitespace-nowrap text-center text-sm text-purple-700 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 border-l border-purple-100 dark:border-purple-900/30">${formatTime(stats.lineMajo[rIndex])}</td>`;
+
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('disp-hebdo').innerText = formatTime(stats.hebdo);
+            document.getElementById('disp-nuits-an-nb').innerText = Math.round(stats.nuitsAn);
+            document.getElementById('disp-nuits-an-h').innerText = Math.round(stats.heuresNuitAn) + 'h';
+            document.getElementById('disp-vacs').innerText = stats.vacSemaine.toFixed(2);
+            document.getElementById('disp-vacs-an').innerText = Math.round(stats.vacAn) + " vacations / an";
+            document.getElementById('disp-majo').innerText = formatTime(stats.majoMois);
+
+            document.getElementById('disp-dim-trav-nb').innerText = Math.round(stats.dimTravAn);
+            document.getElementById('disp-dim-trav-h').innerText = Math.round(stats.dimancheAnHours) + 'h';
+            document.getElementById('disp-dim-repos-nb').innerText = Math.round(stats.dimReposAn);
+            document.getElementById('disp-dim-repos-h').innerText = Math.round(stats.dimReposAnHours) + 'h';
+            document.getElementById('disp-we-repos').innerText = Math.round(stats.weReposAn);
+
+            // Update Series Info (Annualized)
+            const factor = stats.cyclesPerYear;
+            
+            document.getElementById('disp-series-vac-total').innerText = Math.round(stats.totalSeriesVac * factor);
+            
+            const vacDetailEl = document.getElementById('disp-series-vac-detail');
+            vacDetailEl.innerHTML = '';
+            Object.keys(stats.seriesVacCounts).sort((a,b) => a-b).forEach(k => {
+                const countAnnuel = Math.round(stats.seriesVacCounts[k] * factor);
+                if (countAnnuel > 0) {
+                    vacDetailEl.innerHTML += `<span class="series-tag tag-work">${countAnnuel} x ${k}j</span>`;
+                }
+            });
+
+            document.getElementById('disp-series-repos-total').innerText = Math.round(stats.totalSeriesRepos * factor);
+            
+            const reposDetailEl = document.getElementById('disp-series-repos-detail');
+            reposDetailEl.innerHTML = '';
+            Object.keys(stats.seriesReposCounts).sort((a,b) => a-b).forEach(k => {
+                const countAnnuel = Math.round(stats.seriesReposCounts[k] * factor);
+                if (countAnnuel > 0) {
+                    reposDetailEl.innerHTML += `<span class="series-tag tag-rest">${countAnnuel} x ${k}j</span>`;
+                }
+            });
+
+            if(currentMode === '2022') {
+                renderConstraintsTable(activeData, CONSTRAINTS_2022);
+            } else if(currentMode === 'projet') {
+                renderConstraintsTable(activeData, CONSTRAINTS_PROJET);
+            } else if(currentMode === 'grille21') {
+                renderConstraintsTable(activeData, CONSTRAINTS_GRILLE21);
+            }
+            
+            // Always re-render compare table if visible
+            if(!document.getElementById('view-compare').classList.contains('hidden')) {
+                renderCompare();
+            }
+        }
+
+        // Declare renderCompare BEFORE use
+        function renderCompare() {
+            const stats2022 = calculateStats(DATA_2022);
+            
+            let statsTarget;
+            let labelTarget = "Cible";
+            let stats17 = calculateStats(DATA_PROJET);
+            let stats21 = calculateStats(DATA_GRILLE21);
+            
+            const tbody = document.getElementById('compare-body');
+            tbody.innerHTML = '';
+            
+            // Helper for cell
+            const createCell = (val1, val2, val3, diff17, diff21, reverseGood = false) => {
+                
+                let diff17Num = 0;
+                let diff21Num = 0;
+                
+                if (typeof diff17 === 'string') {
+                    if (diff17.includes('h')) {
+                        diff17Num = parseInt(diff17.replace('h', ''));
+                    } else {
+                         diff17Num = parseFloat(diff17);
+                    }
+                } else {
+                     diff17Num = diff17;
+                }
+
+                if (typeof diff21 === 'string') {
+                    if (diff21.includes('h')) {
+                        diff21Num = parseInt(diff21.replace('h', ''));
+                    } else {
+                         diff21Num = parseFloat(diff21);
+                    }
+                } else {
+                     diff21Num = diff21;
+                }
+
+                let colorDiff17 = 'text-slate-400';
+                if (diff17Num > 0) colorDiff17 = reverseGood ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold';
+                if (diff17Num < 0) colorDiff17 = reverseGood ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-600 dark:text-red-400 font-bold';
+                if (diff17Num === 0 || isNaN(diff17Num)) colorDiff17 = 'text-slate-400';
+
+                let colorDiff21 = 'text-slate-400';
+                if (diff21Num > 0) colorDiff21 = reverseGood ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold';
+                if (diff21Num < 0) colorDiff21 = reverseGood ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-red-600 dark:text-red-400 font-bold';
+                if (diff21Num === 0 || isNaN(diff21Num)) colorDiff21 = 'text-slate-400';
+
+                return `
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400 font-medium">${val1}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-700 dark:text-slate-300 font-bold">${val2} <span class="text-xs ${colorDiff17} ml-1">(${diff17})</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-700 dark:text-slate-300 font-bold">${val3} <span class="text-xs ${colorDiff21} ml-1">(${diff21})</span></td>
+                `;
+            };
+
+            const dataRows = [
+                { label: "Durée Hebdomadaire", 
+                  v1: formatTime(stats2022.hebdo), 
+                  v2: formatTime(stats17.hebdo), 
+                  v3: formatTime(stats21.hebdo),
+                  d17: formatTime(stats17.hebdo - stats2022.hebdo),
+                  d21: formatTime(stats21.hebdo - stats2022.hebdo),
+                  reverse: false 
+                },
+                { label: "Vacations / An", 
+                  v1: Math.round(stats2022.vacAn), 
+                  v2: Math.round(stats17.vacAn), 
+                  v3: Math.round(stats21.vacAn),
+                  d17: (Math.round(stats17.vacAn) - Math.round(stats2022.vacAn)) > 0 ? "+" + (Math.round(stats17.vacAn) - Math.round(stats2022.vacAn)) : (Math.round(stats17.vacAn) - Math.round(stats2022.vacAn)),
+                  d21: (Math.round(stats21.vacAn) - Math.round(stats2022.vacAn)) > 0 ? "+" + (Math.round(stats21.vacAn) - Math.round(stats2022.vacAn)) : (Math.round(stats21.vacAn) - Math.round(stats2022.vacAn)),
+                  reverse: true
+                },
+                { label: "Total Heures Nuit / An", 
+                  v1: Math.round(stats2022.heuresNuitAn) + 'h', 
+                  v2: Math.round(stats17.heuresNuitAn) + 'h', 
+                  v3: Math.round(stats21.heuresNuitAn) + 'h',
+                  d17: (Math.round(stats17.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) > 0 ? "+" + (Math.round(stats17.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) + 'h' : (Math.round(stats17.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) + 'h',
+                  d21: (Math.round(stats21.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) > 0 ? "+" + (Math.round(stats21.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) + 'h' : (Math.round(stats21.heuresNuitAn) - Math.round(stats2022.heuresNuitAn)) + 'h',
+                  reverse: false 
+                },
+                { label: "Dimanches Repos (An)", 
+                  v1: Math.round(stats2022.dimReposAn), 
+                  v2: Math.round(stats17.dimReposAn), 
+                  v3: Math.round(stats21.dimReposAn),
+                  d17: (Math.round(stats17.dimReposAn) - Math.round(stats2022.dimReposAn)) > 0 ? "+" + (Math.round(stats17.dimReposAn) - Math.round(stats2022.dimReposAn)) : (Math.round(stats17.dimReposAn) - Math.round(stats2022.dimReposAn)),
+                  d21: (Math.round(stats21.dimReposAn) - Math.round(stats2022.dimReposAn)) > 0 ? "+" + (Math.round(stats21.dimReposAn) - Math.round(stats2022.dimReposAn)) : (Math.round(stats21.dimReposAn) - Math.round(stats2022.dimReposAn)),
+                  reverse: false 
+                },
+                { label: "Week-ends Complets (An)", 
+                  v1: Math.round(stats2022.weReposAn), 
+                  v2: Math.round(stats17.weReposAn), 
+                  v3: Math.round(stats21.weReposAn),
+                  d17: (Math.round(stats17.weReposAn) - Math.round(stats2022.weReposAn)) > 0 ? "+" + (Math.round(stats17.weReposAn) - Math.round(stats2022.weReposAn)) : (Math.round(stats17.weReposAn) - Math.round(stats2022.weReposAn)),
+                  d21: (Math.round(stats21.weReposAn) - Math.round(stats2022.weReposAn)) > 0 ? "+" + (Math.round(stats21.weReposAn) - Math.round(stats2022.weReposAn)) : (Math.round(stats21.weReposAn) - Math.round(stats2022.weReposAn)),
+                  reverse: false 
+                },
+                { label: "Total Majoré (Moy. Mois)", 
+                  v1: formatTime(stats2022.majoMois), 
+                  v2: formatTime(stats17.majoMois), 
+                  v3: formatTime(stats21.majoMois),
+                  d17: formatTime(stats17.majoMois - stats2022.majoMois),
+                  d21: formatTime(stats21.majoMois - stats2022.majoMois),
+                  reverse: false 
+                },
+                { label: "Score Pénibilité Physiologique (An)", 
+                  v1: Math.round(stats2022.scorePhysioAn), 
+                  v2: Math.round(stats17.scorePhysioAn), 
+                  v3: Math.round(stats21.scorePhysioAn),
+                  d17: (Math.round(stats17.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)) > 0 ? "+" + (Math.round(stats17.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)) : (Math.round(stats17.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)),
+                  d21: (Math.round(stats21.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)) > 0 ? "+" + (Math.round(stats21.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)) : (Math.round(stats21.scorePhysioAn) - Math.round(stats2022.scorePhysioAn)),
+                  reverse: true 
+                },
+                { label: "Score Pénibilité Sociale (An)", 
+                  v1: Math.round(stats2022.scoreSocialAn), 
+                  v2: Math.round(stats17.scoreSocialAn), 
+                  v3: Math.round(stats21.scoreSocialAn),
+                  d17: (Math.round(stats17.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)) > 0 ? "+" + (Math.round(stats17.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)) : (Math.round(stats17.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)),
+                  d21: (Math.round(stats21.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)) > 0 ? "+" + (Math.round(stats21.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)) : (Math.round(stats21.scoreSocialAn) - Math.round(stats2022.scoreSocialAn)),
+                  reverse: true 
+                }
+            ];
+
+            dataRows.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-800 dark:text-slate-200">${row.label}</td>` + 
+                               createCell(row.v1, row.v2, row.v3, row.d17, row.d21, row.reverse);
+                tbody.appendChild(tr);
+            });
+            
+            // Handle fusion logic if Grille 21 is identical to Grille 14 (Not implemented as hard check, but visual via table)
+        }
+
+        function updateCell(r, c, val) {
+            activeData[r][c] = val;
+            renderGrid();
+        }
+
+        function switchTab(tab) {
+            currentMode = tab;
+            
+            const btns = ['btn-2022', 'btn-projet', 'btn-grille21', 'btn-compare'];
+            btns.forEach(id => {
+                document.getElementById(id).classList.remove('active', 'text-blue-600', 'dark:text-blue-400', 'bg-white', 'dark:bg-slate-700', 'shadow-sm');
+                document.getElementById(id).classList.add('text-slate-500', 'dark:text-slate-400', 'hover:bg-slate-200', 'dark:hover:bg-slate-700');
+            });
+            
+            document.getElementById('btn-' + tab).classList.add('active', 'text-blue-600', 'dark:text-blue-400', 'bg-white', 'dark:bg-slate-700', 'shadow-sm');
+            document.getElementById('btn-' + tab).classList.remove('text-slate-500', 'dark:text-slate-400', 'hover:bg-slate-200', 'dark:hover:bg-slate-700');
+
+            document.getElementById('view-rules-container').classList.add('hidden');
+            document.getElementById('optimization-box').classList.add('hidden');
+            document.getElementById('view-grid').classList.add('hidden');
+            document.getElementById('view-compare').classList.add('hidden');
+            
+            // Show/Hide Global Stats (Hide in compare mode)
+            if (tab === 'compare') {
+                document.getElementById('dashboard-stats').classList.add('hidden');
+                document.getElementById('dashboard-social').classList.add('hidden');
+                document.getElementById('dashboard-rhythm').classList.add('hidden');
+            } else {
+                document.getElementById('dashboard-stats').classList.remove('hidden');
+                document.getElementById('dashboard-social').classList.remove('hidden');
+                document.getElementById('dashboard-rhythm').classList.remove('hidden');
+            }
+
+            if(tab === '2022') {
+                document.getElementById('view-grid').classList.remove('hidden');
+                document.getElementById('view-rules-container').classList.remove('hidden'); 
+                document.getElementById('rules-label').innerText = "Grille 14 Uniquement";
+                document.getElementById('grid-title').innerText = "Grille Actuelle (2022)";
+                activeData = JSON.parse(JSON.stringify(DATA_2022));
+                renderGrid();
+            } else if (tab === 'projet') {
+                document.getElementById('view-grid').classList.remove('hidden');
+                document.getElementById('view-rules-container').classList.remove('hidden'); 
+                document.getElementById('rules-label').innerText = "Grille Projet (ABCD)";
+                document.getElementById('optimization-box').classList.remove('hidden');
+                document.getElementById('grid-title').innerText = "Grille Projet (ABCD)";
+                activeData = JSON.parse(JSON.stringify(DATA_PROJET));
+                renderGrid();
+            } else if (tab === 'grille21') {
+                document.getElementById('view-grid').classList.remove('hidden');
+                document.getElementById('view-rules-container').classList.remove('hidden'); 
+                document.getElementById('rules-label').innerText = "Grille 21 (Cible)";
+                document.getElementById('grid-title').innerText = "Grille 21 - Cycle 21 semaines (Actuel Étendu)";
+                activeData = JSON.parse(JSON.stringify(DATA_GRILLE21));
+                renderGrid();
+            } else {
+                document.getElementById('view-compare').classList.remove('hidden');
+                renderCompare();
+            }
+        }
+
+        // Init Dark Mode check
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            toggleDarkMode();
+        }
+        
+        // Set default tab to Grille 21
+        switchTab('grille21');
+
+    </script>
+</body>
+</html>

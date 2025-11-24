@@ -65,9 +65,50 @@
         
         .stat-icon-bg { position: absolute; top: 1rem; right: 1rem; opacity: 0.1; transform: scale(2); }
         
-        .btn { padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-muted); cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
-        .btn:hover { background: var(--border); }
-        .btn.active { background: linear-gradient(to bottom, #3b82f6, #2563eb); color: white; border-color: #2563eb; }
+        /* --- BOUTONS NAVIGATION (DESIGN AMÉLIORÉ) --- */
+        @keyframes pulse-border {
+            0% { border-color: var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+            50% { border-color: var(--blue); box-shadow: 0 0 12px rgba(37, 99, 235, 0.25); }
+            100% { border-color: var(--border); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        }
+
+        .btn { 
+            padding: 0.6rem 1.2rem; 
+            border-radius: 0.75rem; 
+            border: 1px solid var(--border); 
+            background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-body) 100%);
+            color: var(--text-muted); 
+            cursor: pointer; 
+            font-weight: 700; 
+            display: flex; align-items: center; gap: 0.5rem; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            letter-spacing: 0.02em;
+        }
+
+        /* Effet constant sur les boutons inactifs */
+        .btn:not(.active):not(:hover) {
+            animation: pulse-border 3s infinite ease-in-out;
+        }
+
+        .btn:hover { 
+            background: #fff; 
+            border-color: var(--blue);
+            color: var(--blue);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.15);
+            animation: none;
+        }
+
+        .btn.active { 
+            background: linear-gradient(135deg, var(--blue), var(--indigo)); 
+            color: white; 
+            border-color: transparent; 
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+            transform: scale(1.05);
+            animation: none;
+            z-index: 10;
+        }
 
         nav { position: sticky; top: 0; z-index: 50; background: var(--nav-bg); border-bottom: 1px solid var(--border); padding: 0.75rem 0; backdrop-filter: blur(8px); }
 
@@ -134,7 +175,7 @@
             <button class="btn" id="btn-2022" onclick="switchTab('2022')">Grille 14</button>
             <button class="btn" id="btn-projet" onclick="switchTab('projet')">Grille 17</button>
             <button class="btn" id="btn-compare" onclick="switchTab('compare')">Comparateur</button>
-            <button class="btn" onclick="document.documentElement.classList.toggle('dark')">🌗</button>
+            <button class="btn" onclick="document.documentElement.classList.toggle('dark')" style="padding:0.6rem; border-radius:50%; animation:none;">🌗</button>
         </div>
     </div>
 </nav>
@@ -159,7 +200,7 @@
                 <div class="text-sm text-indigo">Appliquer l'échange : L12 (Jeu:NX01, Ven:NX01) ↔ L13 (Jeu:JR) ↔ L8 (Ven:J60F)</div>
             </div>
         </div>
-        <button onclick="applyTriangularSwap()" class="btn" style="background:var(--indigo); color:white">Appliquer</button>
+        <button onclick="applyTriangularSwap()" class="btn" style="background:var(--indigo); color:white; animation:none;">Appliquer</button>
     </div>
 
     <!-- MAIN STATS -->
@@ -200,31 +241,48 @@
 
     <!-- SOCIAL STATS -->
     <div id="stats-social" class="grid grid-2 mb-8">
-        <div class="card flex justify-between items-center" style="border-left:4px solid var(--orange)">
+        <div class="card flex justify-between items-center" style="border-top:4px solid var(--orange)">
             <div>
                 <dt class="text-xs font-bold text-muted uppercase">Dimanches Travaillés</dt>
                 <div class="flex items-baseline gap-2 mt-1">
-                    <dd class="text-2xl font-bold text-orange" id="d-trav-nb">--</dd> <span class="text-muted text-sm">j /an</span>
-                </div>
-            </div>
-            <div class="text-right">
-                <dt class="text-xs font-bold text-muted uppercase">Dimanches Repos</dt>
-                <div class="flex items-baseline gap-2 mt-1 justify-end">
-                    <dd class="text-2xl font-bold text-teal" id="d-repos-nb">--</dd> <span class="text-muted text-sm">j /an</span>
+                    <dd class="text-3xl font-bold text-orange" id="d-trav-nb">--</dd> <span class="text-muted text-sm">j / <span id="d-trav-h">--</span>h</span>
                 </div>
             </div>
         </div>
-        <div class="card flex justify-between items-center" style="border-left:4px solid var(--blue)">
+        <div class="card flex justify-between items-center" style="border-top:4px solid var(--teal)">
             <div>
+                <dt class="text-xs font-bold text-muted uppercase">Dimanches Repos</dt>
+                <div class="flex items-baseline gap-2 mt-1">
+                    <dd class="text-3xl font-bold text-teal" id="d-repos-nb">--</dd> <span class="text-muted text-sm">j / <span id="d-repos-h">--</span>h</span>
+                </div>
+            </div>
+        </div>
+        <div class="card flex justify-between items-center" style="border-top:4px solid var(--emerald)">
+             <div>
                 <dt class="text-xs font-bold text-muted uppercase">Week-ends Complets</dt>
-                <dd class="text-3xl font-bold text-blue mt-1" id="d-we">--</dd>
+                <dd class="text-3xl font-bold text-emerald mt-1" id="d-we">--</dd>
                 <span class="text-xs text-muted">Samedi & Dimanche OFF</span>
             </div>
-             <!-- Series Visuals -->
-            <div class="text-right">
-                <dt class="text-xs font-bold text-muted uppercase mb-1">Rythmes</dt>
-                <div id="series-badges" style="max-width:200px; display:flex; flex-wrap:wrap; justify-content:flex-end;"></div>
+        </div>
+    </div>
+
+    <!-- SERIES (RHYTHMS) - RESTORED -->
+    <div id="stats-rhythm" class="grid grid-2 mb-8">
+        <div class="card" style="border-left:4px solid var(--blue)">
+            <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
+                <dt class="text-xs font-bold text-muted uppercase">Séries de Vacations (An)</dt>
+                <dd class="text-2xl font-bold text-blue" id="disp-series-vac-total">--</dd>
             </div>
+            <div id="disp-series-vac-detail" class="flex flex-wrap gap-2"></div>
+            <p class="text-xs text-muted mt-2">Séquences de travail consécutives</p>
+        </div>
+        <div class="card" style="border-left:4px solid var(--emerald)">
+            <div class="flex justify-between items-center mb-3 pb-3 border-b border-gray-200">
+                <dt class="text-xs font-bold text-muted uppercase">Séries de Repos (An)</dt>
+                <dd class="text-2xl font-bold text-emerald" id="disp-series-repos-total">--</dd>
+            </div>
+            <div id="disp-series-repos-detail" class="flex flex-wrap gap-2"></div>
+            <p class="text-xs text-muted mt-2">Séquences de repos consécutives</p>
         </div>
     </div>
 
@@ -403,14 +461,19 @@
                         let d1=hDef.splitHours[0], n1=hDef.nightSplit[0];
                         lineDurations[r]+=d1; lineNights[r]+=n1; totalHeures+=d1; totalNuit+=n1;
                         let sun1=(c===6)?d1:0; totalDimanche+=sun1; lineSundays[r]+=sun1;
-                        lineMajo[r] += (n1+sun1 - ((n1>0&&sun1>0)?Math.min(n1,sun1):0));
+                        // Correct calculation for overlapping hours majoration
+                        let overlap1 = (n1 > 0 && sun1 > 0) ? Math.min(n1, sun1) : 0;
+                        let majo1 = n1 + sun1 - overlap1;
+                        lineMajo[r] += majo1; totalMajo += majo1;
 
                         let d2=hDef.splitHours[1], n2=hDef.nightSplit[1];
                         let tLine = (c<6)?r:(r+1)%nbLignes;
                         lineDurations[tLine]+=d2; lineNights[tLine]+=n2; totalHeures+=d2; totalNuit+=n2;
                         let sun2=(c===5)?d2:0; 
                         if(c===5){ totalDimanche+=d2; lineSundays[tLine]+=d2; }
-                        lineMajo[tLine] += (n2+sun2 - ((n2>0&&sun2>0)?Math.min(n2,sun2):0));
+                        let overlap2 = (n2 > 0 && sun2 > 0) ? Math.min(n2, sun2) : 0;
+                        let majo2 = n2 + sun2 - overlap2;
+                        lineMajo[tLine] += majo2; totalMajo += majo2;
                     }
                 }
             }
@@ -418,7 +481,14 @@
 
         const vacSemaine = totalVacations / nbLignes;
         const vacAn = vacSemaine * 52;
-        const seriesVac = {}; simpleRuns.filter(s=>s.type).forEach(s=> seriesVac[s.count] = (seriesVac[s.count]||0)+1);
+        
+        // Series Counts
+        const seriesVacCounts = {};
+        const seriesReposCounts = {};
+        simpleRuns.forEach(s => {
+            if(s.type) seriesVacCounts[s.count] = (seriesVacCounts[s.count]||0)+1;
+            else seriesReposCounts[s.count] = (seriesReposCounts[s.count]||0)+1;
+        });
         
         return {
             violations, totalHeures, totalNuit, totalDimanche, totalMajo, totalVacations,
@@ -436,7 +506,9 @@
             scorePhysioAn: ((countNuits * 52) / nbLignes) + vacAn,
             scoreSocialAn: ((scoreSocial * 52) / nbLignes) + vacAn,
             lineDurations, lineNights, lineVacs, lineSundays, lineMajo, nbLignes,
-            seriesVac, cyclesPerYear: 52 / nbLignes
+            seriesVacCounts, seriesReposCounts, cyclesPerYear: 52 / nbLignes,
+            totalSeriesVac: Object.values(seriesVacCounts).reduce((a,b)=>a+b,0),
+            totalSeriesRepos: Object.values(seriesReposCounts).reduce((a,b)=>a+b,0)
         };
     }
 
@@ -466,21 +538,31 @@
     function renderCompare() {
         const s14=calculateStats(DATA_2022), s17=calculateStats(DATA_PROJET), s21=calculateStats(DATA_GRILLE21);
         const tb=document.getElementById('compare-body'); tb.innerHTML='';
+        
         const diff = (a,b,inv=false) => {
-            let v = a-b; let txt = (v>0?"+":"")+Math.round(v);
-            if(Math.abs(v)<0.1) txt="=";
-            let c = (v>0)?(inv?"text-red":"text-emerald"):(v<0?(inv?"text-emerald":"text-red"):"text-muted");
+            // FIX: Round BEFORE Diff to match original display
+            let val = Math.round(a) - Math.round(b);
+            let txt = (val>0?"+":"")+val;
+            if(Math.abs(val)<0.1) txt="=";
+            let c = (val>0)?(inv?"text-red":"text-emerald"):(val<0?(inv?"text-emerald":"text-red"):"text-muted");
             return `<span class="text-xs ${c} ml-1">(${txt})</span>`;
         };
+        
+        const diffTime = (a,b) => {
+            let val = a-b;
+            let c = (val>0)?"text-red":(val<0?"text-emerald":"text-muted");
+            return `<span class="text-xs ${c} ml-1">(${formatTime(val)})</span>`;
+        }
+
         const row = (l, v1, v2, v3) => `<tr><td class="td-left font-bold text-muted">${l}</td><td class="font-bold">${v1}</td><td class="font-bold">${v2}</td><td class="font-bold">${v3}</td></tr>`;
 
-        // Exact original rows
-        tb.innerHTML += row("Durée Hebdo", formatTime(s14.hebdo), formatTime(s17.hebdo)+diff(s17.hebdo,s14.hebdo), formatTime(s21.hebdo)+diff(s21.hebdo,s14.hebdo));
+        // Exact original rows logic
+        tb.innerHTML += row("Durée Hebdo", formatTime(s14.hebdo), formatTime(s17.hebdo)+diffTime(s17.hebdo,s14.hebdo), formatTime(s21.hebdo)+diffTime(s21.hebdo,s14.hebdo));
         tb.innerHTML += row("Vacations/An", Math.round(s14.vacAn), Math.round(s17.vacAn)+diff(s17.vacAn,s14.vacAn,true), Math.round(s21.vacAn)+diff(s21.vacAn,s14.vacAn,true));
         tb.innerHTML += row("Total Nuits/An", Math.round(s14.heuresNuitAn)+'h', Math.round(s17.heuresNuitAn)+'h'+diff(s17.heuresNuitAn,s14.heuresNuitAn), Math.round(s21.heuresNuitAn)+'h'+diff(s21.heuresNuitAn,s14.heuresNuitAn));
         tb.innerHTML += row("Dim Repos (An)", Math.round(s14.dimReposAn), Math.round(s17.dimReposAn)+diff(s17.dimReposAn,s14.dimReposAn), Math.round(s21.dimReposAn)+diff(s21.dimReposAn,s14.dimReposAn));
         tb.innerHTML += row("WE Complets (An)", Math.round(s14.weReposAn), Math.round(s17.weReposAn)+diff(s17.weReposAn,s14.weReposAn), Math.round(s21.weReposAn)+diff(s21.weReposAn,s14.weReposAn));
-        tb.innerHTML += row("Total Majoré (Mois)", formatTime(s14.majoMois), formatTime(s17.majoMois)+diff(s17.majoMois,s14.majoMois), formatTime(s21.majoMois)+diff(s21.majoMois,s14.majoMois));
+        tb.innerHTML += row("Total Majoré (Mois)", formatTime(s14.majoMois), formatTime(s17.majoMois)+diffTime(s17.majoMois,s14.majoMois), formatTime(s21.majoMois)+diffTime(s21.majoMois,s14.majoMois));
         tb.innerHTML += row("Score Physio", Math.round(s14.scorePhysioAn), Math.round(s17.scorePhysioAn)+diff(s17.scorePhysioAn,s14.scorePhysioAn,true), Math.round(s21.scorePhysioAn)+diff(s21.scorePhysioAn,s14.scorePhysioAn,true));
         tb.innerHTML += row("Score Social", Math.round(s14.scoreSocialAn), Math.round(s17.scoreSocialAn)+diff(s17.scoreSocialAn,s14.scoreSocialAn,true), Math.round(s21.scoreSocialAn)+diff(s21.scoreSocialAn,s14.scoreSocialAn,true));
     }
@@ -496,15 +578,28 @@
         document.getElementById('disp-majo').innerText = formatTime(stats.majoMois);
         // Social
         document.getElementById('d-trav-nb').innerText = Math.round(stats.dimTravAn);
+        document.getElementById('d-trav-h').innerText = Math.round(stats.dimancheAnHours) + 'h';
         document.getElementById('d-repos-nb').innerText = Math.round(stats.dimReposAn);
+        document.getElementById('d-repos-h').innerText = Math.round(stats.dimReposAnHours) + 'h';
         document.getElementById('d-we').innerText = Math.round(stats.weReposAn);
         
-        // Series Badges
-        const sb = document.getElementById('series-badges'); sb.innerHTML = '';
+        // Series Display (Restored)
         const f = stats.cyclesPerYear;
-        Object.keys(stats.seriesVac).sort((a,b)=>a-b).forEach(k => {
-            if(stats.seriesVac[k]>0) sb.innerHTML += `<span class="badge badge-work">${Math.round(stats.seriesVac[k]*f)}x ${k}j</span>`;
+        // Vacation Series
+        document.getElementById('disp-series-vac-total').innerText = Math.round(stats.totalSeriesVac * f);
+        const vacDetail = document.getElementById('disp-series-vac-detail'); vacDetail.innerHTML = '';
+        Object.keys(stats.seriesVacCounts).sort((a,b)=>a-b).forEach(k => {
+             if(Math.round(stats.seriesVacCounts[k]*f) > 0)
+                vacDetail.innerHTML += `<span class="badge badge-work">${Math.round(stats.seriesVacCounts[k]*f)}x ${k}j</span>`;
         });
+        // Rest Series
+        document.getElementById('disp-series-repos-total').innerText = Math.round(stats.totalSeriesRepos * f);
+        const reposDetail = document.getElementById('disp-series-repos-detail'); reposDetail.innerHTML = '';
+        Object.keys(stats.seriesReposCounts).sort((a,b)=>a-b).forEach(k => {
+            if(Math.round(stats.seriesReposCounts[k]*f) > 0)
+                reposDetail.innerHTML += `<span class="badge badge-rest">${Math.round(stats.seriesReposCounts[k]*f)}x ${k}j</span>`;
+        });
+
 
         // Grid
         const tb = document.getElementById('grid-body'); tb.innerHTML='';
@@ -540,13 +635,13 @@
         document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
         if(document.getElementById('btn-'+t)) document.getElementById('btn-'+t).classList.add('active');
         
-        ['stats-main','stats-social','view-grid','view-rules','view-compare','optim-box'].forEach(i=>document.getElementById(i).classList.add('hidden'));
+        ['stats-main','stats-social','stats-rhythm','view-grid','view-rules','view-compare','optim-box'].forEach(i=>document.getElementById(i).classList.add('hidden'));
 
         if(t==='compare') {
             document.getElementById('view-compare').classList.remove('hidden');
             renderCompare();
         } else {
-            ['stats-main','stats-social','view-grid','view-rules'].forEach(i=>document.getElementById(i).classList.remove('hidden'));
+            ['stats-main','stats-social','stats-rhythm','view-grid','view-rules'].forEach(i=>document.getElementById(i).classList.remove('hidden'));
             if(t==='2022') { activeData=JSON.parse(JSON.stringify(DATA_2022)); document.getElementById('grid-title').innerText="Grille 14 (2022)"; document.getElementById('rules-label').innerText="Grille 14"; }
             if(t==='projet') { activeData=JSON.parse(JSON.stringify(DATA_PROJET)); document.getElementById('grid-title').innerText="Grille 17 (Projet)"; document.getElementById('rules-label').innerText="Grille 17"; document.getElementById('optim-box').classList.remove('hidden'); }
             if(t==='grille21') { activeData=JSON.parse(JSON.stringify(DATA_GRILLE21)); document.getElementById('grid-title').innerText="Grille 21 (Cible)"; document.getElementById('rules-label').innerText="Grille 21"; }
